@@ -5,6 +5,8 @@
 1 Description
     PepNet is an interpretable deep learning framework for predicting peptides with antimicrobial or anti-inflammatory activities by using a pretrained protein language model to fully extract function related diverse peptide features.
     For a given peptide, PepNet first extracts the original features, which are fed into the residual dilated convolution block to capture the spaced neighboring information, and the pre-trained features, which contain richer, more informative and more generalized sequence information. Furthermore, the sequence features encoded by the residual dilated convolution block, along with the pre-trained features, are fed into the residual Transformer block to capture the global information via considering all the positional information from the peptide sequence. Finally, an average pool operation is used to obtain the peptide representation, which is then inputted into the classification layer for binary prediction.
+    
+    
 2 Installation
 
 2.1 system requirements
@@ -80,84 +82,55 @@
 
 3.2.1 Prepare the trianing and testing datasets.
 
-	Kindly provide a FASTA file containing peptide names and sequences, with each peptide name followed by a label separated by a vertical bar "|".
+	Kindly provide the trianing and testing FASTA files containing peptide names and sequences, with each peptide name followed by a label separated by a vertical bar "|".
 
 	Example:
 	>peptide0|1
 	GLLDTFKNLALNAAKSAGVSVLNSLSCKLSKTC
 	>peptide1|0
 	METATLVAIFISCLLVSFTGYAPYTASGQPSNELRDLFEEHED
+	...
 
-3.2.2 Training
 
-	Example:
+3.2.2 Prepare the pretrained feature h5 file by ProtTrans
+
+	After obtaining the FASTA file, the pre-trained features of all peptide sequences need to be extracted using ProtTrans and saved as an H5 file with the same name of the FASTA file. 
+	
+	Subsequently, the training and testing H5 files will be placed in ../datasets/{type}/feature/ 
+
+
+3.2.3 The preprocessed datasets can be download at https://zenodo.org/records/11363310
+
+
+3.2.4 Training
+
+	Standard mode:
 		$ cd script
-		$ python train.py -type AIP -
+		$ python train.py -type AIP -train_fasta {name of the train FASTA file} -test_fasta {name of the test FASTA file} -hidden 1024 -drop 0.5 -n_transformer 1 -lr 0.0001 -batch_size 256 -epoch 3
+		
+	Note: 
+	1. The training and testing FASTA files must be placed in the "../datasets/{type}/" directory, to enable PepNet to automatically access the FASTA files. 
+	2. The pre-training feature files of the training and testing datasets must be named identically to their corresponding FASTA files and stored in the "../datasets/{type}/feature/" directory, to enable PepNet to automatically access their pre-training features.
+	
 	
 	Output:
-	Tha modified PDB files are saved in ../Datasets/customed_data/P{ligand}/modified_data/PDB
+	Tha output log and model files are saved in ../datasets/{type}/checkpoints/{time}
 
-3.2.3 Generate the training, validation and test data sets from original data sets
-
-    Example:
-        $ cd scripts
-        # demo 1
-        $ python data_io.py --ligand DNA --psepos SC --features PSSM,HMM,SS,AF --context_radius 20
-        # demo 2
-        $ python data_io.py --ligand RNA --psepos SC --features PSSM,HMM,SS,AF --context_radius 20
-
-    Output:
-    The data sets are saved in ../Datasets/customed_data/P{ligand}/modified_data/P{ligand}_{psepos}_dist{context_radius}_{featurecode}.
-
-    Note: {featurecode} is the combination of the first letter of {features}.
-    Expected run time for the demo 1 and demo 2 on a "normal" desktop computer are 30 and 40 minutes, respectively.
 
     The list of commands:
-    --ligand            A ligand type. It can be chosen from DNA,RNA,P.
-    --psepos            Pseudo position of residues. SC, CA, C stand for centroid of side chain, alpha-C atom and centroid of residue, respectively.(default=SC)
-    --features          Feature groups. Multiple features should be separated by commas. You can combine features from PSSM, HMM, SS(secondary structure) and AF(atom features).(default=PSSM,HMM,SS,AF)
-    --context_radius    Radius of structure context.
-    --tvseed            The random seed used to separate the validation set from training set.(default=1995)
+    --type            	A ligand type. It can be chosen from AIP,AMP.
+    --train_fasta       The name of the training FASTA file.
+    --test_fasta        The name of the training FASTA file.
+    --hidden     		The number of hidden units or dimensions in a neural network layer.
+    --drop            	The probability of randomly dropping input units during each update in the training period after the concatenation of the results of the three stages.
+    --n_transformer		The number of transformer layers parameter determines how many identical layers the transformer model will have. 
+    --lr 				The initial learning rate used to control the step size of parameter updates in each update.
+    --batch_size 		The number of training examples utilized in one iteration during the training process of a machine learning model.
+    --seed 				The seed of split training set into training and validation. default=1999
+    --epoch				The number of times the entire training dataset is passed forward and backward through the neural network during the training process.
 
 
-3.2.4 Train the deep model
-
-    Example:
-        $ cd scripts
-        # demo 1
-        $ python training_gat.py --ligand DNA --psepos SC --features PSSM,HMM,SS,AF --context_radius 20 --edge_radius 10 --apply_edgeattr True --apply_posemb True --aggr sum --nlayers 4
-        # demo 2
-        $ python training_gat.py --ligand RNA --psepos SC --features PSSM,HMM,SS,AF --context_radius 20 --edge_radius 10 --apply_edgeattr True --apply_posemb True --nlayers 4
-
-    Output:
-    The trained model is saved in ../Datasets/P{ligand}/checkpoints/{starttime}.
-    The log file of training details is saved in ../Datasets/P{ligand}/checkpoints/{starttime}/training.log.
-
-    Note: {starttime} is the time when training.py started be executed.
-    Expected run time for demo 1 and demo 2 on a "normal" desktop computer with a GPU are 30 and 12 hours, respectively.
-
-    The list of commands:
-    --ligand            A ligand type. It can be chosen from DNA,RNA,CA,MG,MN,ATP,HEME.
-    --psepos            Pseudo position of residues. SC, CA, C stand for centroid of side chain, alpha-C atom and centroid of residue, respectively.(default=SC)
-    --features          Feature groups. Multiple features should be separated by commas. You can combine features from PSSM, HMM, SS(secondary structure), AF(atom features) and OH (one-hot encoding features).(default=PSSM,HMM,SS,AF)
-    --context_radius    Radius of structure context.
-    --edge_radius       Radius of the neighborhood of a node. It should be smaller than radius of structure context.(default=20)
-    --apply_edgeattr    Use the edge feature vectors or not.(default=True)
-    --apply_posemb      Use the relative distance from every node to the central node as position embedding of nodes or not.(default=True)
-    --aggr              The aggregation operation in node update module and graph update module. You can choose from sum and max.(default=sum)
-    --hidden_size       The dimension of encoded edge, node and graph feature vector.(default=64)
-    --nlayers         	The number of Geometric Graph Encoder (GGE).(default=4)
-    --lr                Learning rate for training the deep model.(default=0.00005)
-    --batch_size        Batch size for training deep model.(default=64)
-    --epoch             Training epochs.(default=30)
-
-
-4 Frequently Asked Questions
-(1) If the script is interrupted by "Segmentation fault (core dumped)" when torch of CUDA version is used, it may be raised because the version of gcc (our version of gcc is 5.5.0) and you can try to set CUDA_VISIBLE_DEVICES to CPU before execute the script to avoid it by:
-        $ export CUDA_VISIBLE_DEVICES="-1"
-(2) If your CUDA version is not 10.0, please refer to the homepages of Pytorch(https://pytorch.org/) and torch_geometric (https://pytorch-geometric.readthedocs.io/en/latest/) to make sure that the installed dependencies match the CUDA version. Otherwise, the environment could be problematic due to the inconsistency.
-
-5 How to cite PepNet?
+4 How to cite PepNet?
 
    If you are using the PepNet program, you can cite:
    
