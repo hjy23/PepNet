@@ -1,64 +1,70 @@
-```
+
                         Installation and implementation of PepNet
                                 (version 1.0 2024/05/27)
 
 1 Description
-    PepNet is an interpretable deep learning framework for predicting peptides with antimicrobial or anti-inflammatory activities by using a pretrained protein language model to fully extract function related diverse peptide features.
-    For a given peptide, PepNet first extracts the original features, which are fed into the residual dilated convolution block to capture the spaced neighboring information, and the pre-trained features, which contain richer, more informative and more generalized sequence information. Furthermore, the sequence features encoded by the residual dilated convolution block, along with the pre-trained features, are fed into the residual Transformer block to capture the global information via considering all the positional information from the peptide sequence. Finally, an average pool operation is used to obtain the peptide representation, which is then inputted into the classification layer for binary prediction.
     
+PepNet is an interpretable deep learning framework for predicting peptides with antimicrobial or anti-inflammatory activities by using a pretrained protein language model to fully extract function related diverse peptide features.
     
+For a given peptide, PepNet first extracts the original features, which are fed into the residual dilated convolution block to capture the spaced neighboring information, and the pre-trained features, which contain richer, more informative and more generalized sequence information. Furthermore, the sequence features encoded by the residual dilated convolution block, along with the pre-trained features, are fed into the residual Transformer block to capture the global information via considering all the positional information from the peptide sequence. Finally, an average pool operation is used to obtain the peptide representation, which is then inputted into the classification layer for binary prediction.
+
+![workflow](img/PepNet_workflow.png) 
+
 2 Installation
 
 2.1 system requirements
-    For prediction process, you can predict functional binding residues from a protein structure within a few minutes with CPUs only. However, for training a new deep model from scratch, we recommend using a GPU for significantly faster training.
-    To use PepNet with GPUs, you will need: cuda >= 10.0, cuDNN.
+    
+For prediction process, you can predict functional binding residues from a protein structure within a few minutes with CPUs only. However, for training a new deep model from scratch, we recommend using a GPU for significantly faster training.
+    
+To use PepNet with GPUs, you will need: cuda >= 10.0, cuDNN.
 
 2.2 Create an environment
-    PepNet is built on Python3.
-    We highly recommend to use a virtual environment for the installation of PepNet and its dependencies.
+    
+PepNet is built on Python3.
+We highly recommend to use a virtual environment for the installation of PepNet and its dependencies.
 
     A virtual environment can be created and (de)activated as follows by using conda(https://conda.io/docs/):
+        
         # create
-        $ conda create -n PepNet python=3.6
+        $ conda create -n PepNet python=3.8
         # activate
         $ source activate PepNet
         # deactivate
         $ source deactivate
-    OR the virtual environment can be created by using virtualenv(https://github.com/pypa/virtualenv/).
-        # create
-        $ virtualenv PepNet --python=python3.6
-        # activate
-        $ source PepNet/bin/activate
-        # deactivate
-        $ deactivate
+
 
 2.3 Install PepNet dependencies
-    Note: If you are using a Python virtual environment, make sure it is activated before running each command in this guide.
+    
+Note: If you are using a Python virtual environment, make sure it is activated before running each command in this guide.
 
 2.3.1 Install requirements
 	
 	Note: Typical install requirements time on a "normal" desktop computer is 10 minutes. This is an install example, you can also install the latest versions of pytorch and torch-geometric, but please pay attention to compatibility issues between versions when installing.
 	
-    (1) Install pytorch 1.2.0 (For more details, please refer to https://pytorch.org/)
+    (1) Install pytorch 2.4.0 (For more details, please refer to https://pytorch.org/)
         For linux:
-        # CUDA 10.0
-        $ pip install torch===1.2.0 torchvision===0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
+        # CUDA 11.8
+        $ pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
         # CPU only
-        $ pip install torch==1.2.0+cpu torchvision==0.4.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+        $ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
+    (2) Install the requirements.
+        For linux:
+        $ pip install -r requirements.txt
 
 2.3.2 Extraction the pretrained features generated by ProtT5-XL-U50
+    
     (1) Download the source code of ProtTrans from https://github.com/agemagician/ProtTrans.
-    (2) Download the ProtT5-XL-U50 model.
+    (2) Download the ProtT5-XL-U50 model from https://huggingface.co/Rostlab/prot_t5_xl_uniref50/tree/main.
+    (3) Place the downloaded model files in this directory {ProtTrans_path}/Embedding/Rostlab/prot_t5_xl_half_uniref50-enc
     (3) Generate the pretrained feature for a fasta file.
         $ cd {ProtTrans_path}/Embedding
         $ python prott5_embedder.py --input {the path of the fasta file} --output {the path of the output H5PY file, e.g, out.h5} --model {the path of the ProtT5-XL-U50 model you download}
 
-    Note: Before runing ProtTrans, please install the required dependencies of ProtTrans.
+    Note: If you select PepNet in Fast mode, you can ignore this!
 
 
-
-3 Usage
+3 Usage 
 
 3.1 Predict AMPs or AIPs based on trained deep models
 
@@ -77,12 +83,24 @@
     Output:
     The result named after "{type}_prediction_result.csv" is saved in {output_path}. The four columns are represented peptide index, peptide sequence, the probability being AMP or AIM and the binary prediction category (1:positive, 0:negative), respectively.
     
+3.1.3 Onliner web server 
+    
+    For the convenience of users in using PepNet, you can also use the user-friendly web server (http://www.liulab.top/PepNet/server) for online prediction of peptide sequences as AMPs or AIPs.
+    Users can choose the fast and the standard mode of the PepNet, the former just need to upload the FASTA file (no more than 2000 peptides), while the latter need users to upload corresponded pre-embedding feature H5PY file.
+
+Fast mode:
+
+![fast](img/Fast.png) 
+
+Standard mode:
+
+![Standard](img/Standard.png) 
 
 3.2 Train a new deep model
 
 3.2.1 Prepare the trianing and testing datasets.
 
-	Kindly provide the trianing and testing FASTA files containing peptide names and sequences, with each peptide name followed by a label separated by a vertical bar "|".
+Kindly provide the trianing and testing FASTA files containing peptide names and sequences, with each peptide name followed by a label separated by a vertical bar "|".
 
 	Example:
 	>peptide0|1
@@ -94,9 +112,9 @@
 
 3.2.2 Prepare the pretrained feature h5 file by ProtTrans
 
-	After obtaining the FASTA file, the pre-trained features of all peptide sequences need to be extracted using ProtTrans and saved as an H5 file with the same name of the FASTA file. 
+After obtaining the FASTA file, the pre-trained features of all peptide sequences need to be extracted using ProtTrans and saved as an H5 file with the same name of the FASTA file. 
 	
-	Subsequently, the training and testing H5 files will be placed in ../datasets/{type}/feature/ 
+Subsequently, the training and testing H5 files will be placed in ../datasets/{type}/feature/ 
 
 
 3.2.3 The preprocessed datasets can be download at https://zenodo.org/records/11363310
@@ -104,7 +122,7 @@
 
 3.2.4 Training
 
-	Standard mode:
+    Standard mode:
 		$ cd script
 		$ python train.py -type AIP -train_fasta {name of the train FASTA file} -test_fasta {name of the test FASTA file} -hidden 1024 -drop 0.5 -n_transformer 1 -lr 0.0001 -batch_size 256 -epoch 3
 		
@@ -134,5 +152,5 @@
 
    If you are using the PepNet program, you can cite:
    
-```
+
 
