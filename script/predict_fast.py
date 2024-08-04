@@ -24,14 +24,14 @@ warnings.filterwarnings("ignore", message="indexing with dtype torch.uint8 is no
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Launch a list of commands.")
-    parser.add_argument("--type", "-type", dest="type", type=str, default='AIP',
+    parser.add_argument("--type", "-type", dest="type", type=str, default='Toxic',
                         help="The type of training model is antimicrobial peptide or anti-inflammatory peptide, 'AMP' or 'AIP'.",
-                        choices=['AMP', 'AIP'])
+                        choices=['AMP', 'AIP', 'Toxic'])
     parser.add_argument("--test_fasta", "-test_fasta", dest='test_fasta', type=str,
                         default='../datasets/AIP/test.txt',
                         help='The path of the test FASTA file.')
     parser.add_argument("--output_path", "-output_path", dest='output_path', type=str,
-                        default='',
+                        default='../',
                         help='The output_path.')
     parser.add_argument("--drop", "-drop", dest='drop', type=float, default=0.5,
                         help='The probability of randomly dropping input units during each update in the training period after the concatenation of the results of the three stages.')
@@ -47,7 +47,7 @@ def checkargs(args):
         print('ERROR: please input the necessary parameters!')
         raise ValueError
 
-    if args.type not in ['AMP', 'AIP']:
+    if args.type not in ['AMP', 'AIP', 'Toxic']:
         print(f'ERROR: type "{args.type}" is not supported by PepNet!')
         raise ValueError
 
@@ -68,6 +68,11 @@ class Config():
             self.batch_size = 256
             self.hidden = 1024
             self.model_time = '2024_03_29_14_37_31_no_pre-feature_724'
+        elif self.type == 'Toxic':
+            self.th = 0.48
+            self.batch_size = 256
+            self.hidden = 512
+            self.model_time = '2024_08_04_19_16_51_no_feature_938'
         self.Dataset_dir = f'../datasets/{self.type}'
         self.test_fasta = args.test_fasta
         self.n_transformer = args.n_transformer
